@@ -18,6 +18,12 @@ pub struct JenkinsInfo {
     path: String,
 }
 
+pub struct JenkinsInput {
+    pub url: String,
+    pub username: String,
+    pub token: String
+}
+
 impl JenkinsInfo {
     pub fn get_url(&self) -> String {
         if self.is_https {
@@ -34,19 +40,17 @@ impl JenkinsInfo {
     }
 }
 
-pub fn get_jenkins_config() -> JenkinsInfo {
+pub fn get_jenkins_config() -> Option<JenkinsInfo> {
     let mut jk_info = JenkinsInfo::default();
     config_dir().and_then(|conf_dir| {
         let jk_info_toml = conf_dir.join("jenkins_info").join("jenkins_info.toml");
         if jk_info_toml.exists() {
             jk_info = read_config_from_file(&jk_info_toml);
-            Some(0)
+            Some(jk_info)
         } else {
-            jk_info = create_config_to_file(&jk_info_toml);
-            Some(1)
+            None
         }
-    });
-    jk_info
+    })
 }
 
 fn read_config_from_file(toml_conf: &PathBuf) -> JenkinsInfo {
@@ -64,21 +68,18 @@ fn read_config_from_file(toml_conf: &PathBuf) -> JenkinsInfo {
     jenkins_info
 }
 
-fn get_input(prompt: &str) -> String {
-    println!("{}", prompt);
-    let mut input = String::new();
-    match io::stdin().read_line(&mut input) {
-        Ok(_goes_into_input_above) => {}
-        Err(_no_updates_is_fine) => {}
-    }
-    input.trim().to_string()
+pub fn create_default_config_file(ui_input: &JenkinsInput) -> Option<JenkinsInfo> {
+    config_dir().and_then(|conf_dir| {
+        let jk_info_toml = conf_dir.join("jenkins_info").join("jenkins_info.toml");
+        Some(create_config_to_file(&jk_info_toml, ui_input))
+    })
 }
 
-fn create_config_to_file(toml_conf: &PathBuf) -> JenkinsInfo {
+fn create_config_to_file(toml_conf: &PathBuf, ui_input: &JenkinsInput) -> JenkinsInfo {
     println!("It's seems that your first time to run this program. Please input the necessary information.");
-    let jenkins_url = Url::parse(&get_input("Please enter the jenkins url:")).unwrap();
-    let username = get_input("Please enter username for jenkins server:");
-    let token = get_input("Please enter token for jenkins server:");
+    let jenkins_url = Url::parse(&ui_input.url).unwrap();
+    let username = ui_input.username.clone();
+    let token = ui_input.token.clone();
     let jenkins_info = JenkinsInfo {
         jenkins_domain: jenkins_url.host_str().unwrap().to_string(),
         username: username,

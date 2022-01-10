@@ -1,8 +1,8 @@
 use super::super::elements::{FirstName, PackType};
-use super::{INPUT_LENGTH, LABEL_FONT_SIZE};
+use super::{INPUT_LENGTH, LABEL_FONT_SIZE, LABEL_WIDTH};
 use iced::{
     button, pick_list, text_input, Align, Button, Column, Container, Element, Length, PickList,
-    Sandbox, Text
+    Row, Sandbox, Text,
 };
 
 #[derive(Default)]
@@ -36,7 +36,10 @@ impl Sandbox for SvnUpgrader {
     type Message = SvnUpgraderMessage;
 
     fn new() -> Self {
-        Self::default()
+        let mut preset_default = Self::default();
+        preset_default.first_name_selected = Some(FirstName::LAS);
+        preset_default.pack_type_selected = Some(PackType::SP);
+        preset_default
     }
 
     fn title(&self) -> String {
@@ -71,8 +74,7 @@ impl Sandbox for SvnUpgrader {
                 self.pack_type_selected = Some(pack_type);
                 self.pack_type = pack_type_val.to_owned()
             }
-            SvnUpgraderMessage::SubmitPressed => {
-            }
+            SvnUpgraderMessage::SubmitPressed => {}
         }
     }
 
@@ -81,71 +83,105 @@ impl Sandbox for SvnUpgrader {
             .padding(20)
             .align_items(Align::Center)
             .push(
-                Text::new("Repo Path:")
-                    .width(Length::from(INPUT_LENGTH))
-                    .size(LABEL_FONT_SIZE),
+                Row::new()
+                    .padding(10)
+                    .align_items(Align::Center)
+                    .push(
+                        Text::new("Repo Path:")
+                            .width(Length::from(LABEL_WIDTH))
+                            .size(LABEL_FONT_SIZE),
+                    )
+                    .push(
+                        text_input::TextInput::new(
+                            &mut self.repo_path_input,
+                            ".",
+                            &self.repo_path,
+                            SvnUpgraderMessage::RepoPathChange,
+                        )
+                        .width(Length::from(INPUT_LENGTH)),
+                    ),
             )
             .push(
-                text_input::TextInput::new(
-                    &mut self.repo_path_input,
-                    ".",
-                    &self.repo_path,
-                    SvnUpgraderMessage::RepoPathChange,
-                )
-                .width(Length::from(INPUT_LENGTH)),
+                Row::new()
+                    .padding(10)
+                    .align_items(Align::Center)
+                    .push(
+                        Text::new("Proid:")
+                            .width(Length::from(LABEL_WIDTH))
+                            .size(LABEL_FONT_SIZE),
+                    )
+                    .push(
+                        text_input::TextInput::new(
+                            &mut self.pro_id_input,
+                            "504_Pro.20210114.003800",
+                            &self.pro_id,
+                            SvnUpgraderMessage::ProidChange,
+                        )
+                        .width(Length::from(INPUT_LENGTH)),
+                    ),
             )
             .push(
-                Text::new("Proid:")
-                    .width(Length::from(INPUT_LENGTH))
-                    .size(LABEL_FONT_SIZE),
+                Row::new()
+                    .padding(10)
+                    .align_items(Align::Center)
+                    .push(
+                        Text::new("Mail To:")
+                            .width(Length::from(LABEL_WIDTH))
+                            .size(LABEL_FONT_SIZE),
+                    )
+                    .push(
+                        text_input::TextInput::new(
+                            &mut self.mailto_input,
+                            "",
+                            &self.mailto,
+                            SvnUpgraderMessage::MailToChange,
+                        )
+                        .width(Length::from(INPUT_LENGTH)),
+                    ),
             )
             .push(
-                text_input::TextInput::new(
-                    &mut self.pro_id_input,
-                    "504_Pro.20210114.003800",
-                    &self.pro_id,
-                    SvnUpgraderMessage::ProidChange,
-                )
-                .width(Length::from(INPUT_LENGTH)),
+                Row::new()
+                    .padding(10)
+                    .align_items(Align::Center)
+                    .push(
+                        Text::new("Frist Name:")
+                            .width(Length::from(LABEL_WIDTH))
+                            .size(LABEL_FONT_SIZE),
+                    )
+                    .push(
+                        PickList::new(
+                            &mut self.first_name_pick,
+                            &FirstName::ALL[..],
+                            self.first_name_selected,
+                            SvnUpgraderMessage::FirstNameSelected,
+                        )
+                        .width(Length::from(INPUT_LENGTH)),
+                    ),
             )
             .push(
-                Text::new("Mail To:")
-                    .width(Length::from(INPUT_LENGTH))
-                    .size(LABEL_FONT_SIZE),
+                Row::new()
+                    .padding(10)
+                    .align_items(Align::Center)
+                    .push(
+                        Text::new("Pack Type:")
+                            .width(Length::from(LABEL_WIDTH))
+                            .size(LABEL_FONT_SIZE),
+                    )
+                    .push(
+                        PickList::new(
+                            &mut self.pack_type_pick,
+                            &PackType::ALL[..],
+                            self.pack_type_selected,
+                            SvnUpgraderMessage::PackTypeSelected,
+                        )
+                        .width(Length::from(INPUT_LENGTH)),
+                    ),
             )
             .push(
-                text_input::TextInput::new(
-                    &mut self.mailto_input,
-                    "",
-                    &self.mailto,
-                    SvnUpgraderMessage::MailToChange,
-                )
-                .width(Length::from(INPUT_LENGTH)),
-            )
-            .push(
-                Text::new("Frist Name:")
-                    .width(Length::from(INPUT_LENGTH))
-                    .size(LABEL_FONT_SIZE),
-            )
-            .push(PickList::new(
-                &mut self.first_name_pick,
-                &FirstName::ALL[..],
-                self.first_name_selected,
-                SvnUpgraderMessage::FirstNameSelected,
-            ))
-            .push(
-                Text::new("Pack Type:")
-                    .width(Length::from(INPUT_LENGTH))
-                    .size(LABEL_FONT_SIZE),
-            )
-            .push(PickList::new(
-                &mut self.pack_type_pick,
-                &PackType::ALL[..],
-                self.pack_type_selected,
-                SvnUpgraderMessage::PackTypeSelected,
-            ))
-            .push(
-                Button::new(&mut self.submit, Text::new("Submit")).on_press(SvnUpgraderMessage::SubmitPressed),
+                Row::new().align_items(Align::End).push(
+                    Button::new(&mut self.submit, Text::new("Submit"))
+                        .on_press(SvnUpgraderMessage::SubmitPressed),
+                ),
             );
         Container::new(content)
             .width(Length::Fill)

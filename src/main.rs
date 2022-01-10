@@ -1,16 +1,19 @@
 mod elements;
+mod core;
 mod ui;
 use iced::{Sandbox, Settings};
 use ui::{SvnUpgrader, UserInfo};
 
 pub fn main() -> iced::Result {
-    let a = 4;
     let mut settings = Settings::default();
-    if a == 4 {
-        settings.window.size = (350, 180);
-        UserInfo::run(settings)
-    } else {
-        settings.window.size = (400, 280);
-        SvnUpgrader::run(settings)
+    match core::get_jenkins_config() {
+        Some(_) => {
+            settings.window.size = (400, 300);
+            SvnUpgrader::run(settings)
+        },
+        None => {
+            settings.window.size = (350, 180);
+            UserInfo::run(settings)
+        }
     }
 }
