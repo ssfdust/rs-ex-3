@@ -1,8 +1,9 @@
 use super::super::core::{create_default_config_file, JenkinsInput};
-use super::{INPUT_LENGTH, LABEL_FONT_SIZE, LABEL_WIDTH};
+use super::{INPUT_LENGTH, INPUT_PADDING, LABEL_FONT_SIZE, LABEL_WIDTH};
 use iced::{
     button, text_input, Align, Button, Column, Container, Element, Length, Row, Sandbox, Text,
 };
+use native_dialog::{MessageDialog, MessageType};
 use std::process;
 
 #[derive(Default)]
@@ -28,7 +29,10 @@ impl Sandbox for UserInfo {
     type Message = UserInfoMessage;
 
     fn new() -> Self {
-        Self::default()
+        UserInfo {
+            url: "http://jenkins.juminfo.org/job/tool-make-upgrade".to_string(),
+            ..Self::default()
+        }
     }
 
     fn title(&self) -> String {
@@ -46,8 +50,26 @@ impl Sandbox for UserInfo {
                     username: self.username.clone(),
                     token: self.token.clone(),
                 };
-                create_default_config_file(&jenkins_input);
-                process::exit(0)
+                if jenkins_input.url.len() == 0
+                    || jenkins_input.username.len() == 0
+                    || jenkins_input.token.len() == 0
+                {
+                    MessageDialog::new()
+                        .set_type(MessageType::Warning)
+                        .set_title("warning")
+                        .set_text("There are empty fileds.")
+                        .show_alert()
+                        .unwrap();
+                } else {
+                    create_default_config_file(&jenkins_input);
+                    MessageDialog::new()
+                        .set_type(MessageType::Info)
+                        .set_title("Info")
+                        .set_text("You need to restart the program.")
+                        .show_alert()
+                        .unwrap();
+                    process::exit(0)
+                }
             }
         }
     }
@@ -72,6 +94,7 @@ impl Sandbox for UserInfo {
                             &self.url,
                             UserInfoMessage::UrlChange,
                         )
+                        .padding(INPUT_PADDING)
                         .width(Length::from(INPUT_LENGTH)),
                     ),
             )
@@ -91,6 +114,7 @@ impl Sandbox for UserInfo {
                             &self.username,
                             UserInfoMessage::UserNameChange,
                         )
+                        .padding(INPUT_PADDING)
                         .width(Length::from(INPUT_LENGTH)),
                     ),
             )
@@ -110,14 +134,13 @@ impl Sandbox for UserInfo {
                             &self.token,
                             UserInfoMessage::UserTokenChange,
                         )
+                        .padding(INPUT_PADDING)
                         .width(Length::from(INPUT_LENGTH)),
                     ),
             )
             .push(
-                Row::new().padding(10).align_items(Align::Center).push(
-                    Button::new(&mut self.submit, Text::new("Ok"))
-                        .on_press(UserInfoMessage::SubmitPressed),
-                ),
+                Button::new(&mut self.submit, Text::new("Ok"))
+                    .on_press(UserInfoMessage::SubmitPressed),
             );
         Container::new(content)
             .width(Length::Fill)

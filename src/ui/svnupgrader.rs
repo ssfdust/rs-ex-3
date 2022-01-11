@@ -1,25 +1,28 @@
-use super::super::elements::{FirstName, PackType};
-use super::{INPUT_LENGTH, LABEL_FONT_SIZE, LABEL_WIDTH};
+use super::super::core::{dump_jenkins_toml, get_jenkins_toml, JenkinsToml, post_with};
+use super::super::elements::{FirstName, PreName};
+use super::{INPUT_LENGTH, INPUT_PADDING, LABEL_FONT_SIZE, LABEL_WIDTH};
 use iced::{
     button, pick_list, text_input, Align, Button, Column, Container, Element, Length, PickList,
     Row, Sandbox, Text,
 };
+use std::io;
 use native_dialog::{FileDialog, MessageDialog, MessageType};
+use std::path::PathBuf;
 
 #[derive(Default)]
 pub struct SvnUpgrader {
-    repo_path: String,
+    pub repo_path: String,
     repo_path_input: text_input::State,
-    pro_id: String,
+    pub pro_id: String,
     pro_id_input: text_input::State,
-    mailto: String,
+    pub mailto: String,
     mailto_input: text_input::State,
-    first_name: String,
+    pub first_name: String,
     first_name_selected: Option<FirstName>,
     first_name_pick: pick_list::State<FirstName>,
-    pack_type: String,
-    pack_type_selected: Option<PackType>,
-    pack_type_pick: pick_list::State<PackType>,
+    pub pre_name: String,
+    pre_name_selected: Option<PreName>,
+    pre_name_pick: pick_list::State<PreName>,
     open_file_dialog: button::State,
     submit: button::State,
 }
@@ -30,7 +33,7 @@ pub enum SvnUpgraderMessage {
     ProidChange(String),
     MailToChange(String),
     FirstNameSelected(FirstName),
-    PackTypeSelected(PackType),
+    PreNameSelected(PreName),
     OpenFileDialogPressed,
     SubmitPressed,
 }
@@ -39,10 +42,13 @@ impl Sandbox for SvnUpgrader {
     type Message = SvnUpgraderMessage;
 
     fn new() -> Self {
-        let mut preset_default = Self::default();
-        preset_default.first_name_selected = Some(FirstName::LAS);
-        preset_default.pack_type_selected = Some(PackType::SP);
-        preset_default
+        SvnUpgrader {
+            first_name_selected: Some(FirstName::LAS),
+            pre_name_selected: Some(PreName::SP),
+            first_name: String::from("001: BDSEC"),
+            pre_name: String::from("SP"),
+            ..Self::default()
+        }
     }
 
     fn title(&self) -> String {
@@ -69,13 +75,13 @@ impl Sandbox for SvnUpgrader {
                 self.first_name_selected = Some(first_name);
                 self.first_name = first_name_val.to_owned()
             }
-            SvnUpgraderMessage::PackTypeSelected(pack_type) => {
-                let pack_type_val = match pack_type {
-                    PackType::KB => "KB",
-                    PackType::SP => "SP",
+            SvnUpgraderMessage::PreNameSelected(pre_name) => {
+                let pre_name_val = match pre_name {
+                    PreName::KB => "KB",
+                    PreName::SP => "SP",
                 };
-                self.pack_type_selected = Some(pack_type);
-                self.pack_type = pack_type_val.to_owned()
+                self.pre_name_selected = Some(pre_name);
+                self.pre_name = pre_name_val.to_owned()
             }
             SvnUpgraderMessage::OpenFileDialogPressed => {
                 let path = FileDialog::new()
@@ -89,8 +95,39 @@ impl Sandbox for SvnUpgrader {
                     None => return,
                 };
                 self.repo_path = path.to_string_lossy().to_string();
+                match get_jenkins_toml(&path){
+                    Ok(jenkins_toml) => {
+                        self.pre_name = jenkins_toml.pre_name();
+                        self.first_name = jenkins_toml.first_name();
+                        self.pro_id = jenkins_toml.proid();
+                        self.mailto = jenkins_toml.mailto();
+                        self.first_name_selected = jenkins_toml.first_name_selected();
+                        self.pre_name_selected = jenkins_toml.pre_name_selected();
+                    }
+                    _ => {}
+                }
             }
-            SvnUpgraderMessage::SubmitPressed => {}
+            SvnUpgraderMessage::SubmitPressed => {
+                let path = PathBuf::from(self.repo_path.as_str());
+                let jenkins_toml = JenkinsToml::from(self);
+                match dump_jenkins_toml(&path, &jenkins_toml) {
+                    Err(_) => {
+                        MessageDialog::new()
+                        .set_title("Error")
+                        .set_type(MessageType::Error)
+                        .set_text("Failed to create toml file.")
+                        .show_alert().or_else(|_| {Err(io::Error::last_os_error())}).unwrap();
+                    }
+                    _ => {
+                        post_with(&path, jenkins_toml);
+                        MessageDialog::new()
+                        .set_title("Info")
+                        .set_type(MessageType::Info)
+                        .set_text("Request send.")
+                        .show_alert().or_else(|_| {Err(io::Error::last_os_error())}).unwrap();
+                    },
+                }
+            }
         }
     }
 
@@ -115,7 +152,7 @@ impl Sandbox for SvnUpgrader {
                             &self.repo_path,
                             SvnUpgraderMessage::RepoPathChange,
                         )
-
+                        .padding(INPUT_PADDING)
                         .width(Length::from(INPUT_LENGTH - 20)),
                     )
                     .push(
@@ -139,6 +176,7 @@ impl Sandbox for SvnUpgrader {
                             &self.pro_id,
                             SvnUpgraderMessage::ProidChange,
                         )
+                        .padding(INPUT_PADDING)
                         .width(Length::from(INPUT_LENGTH)),
                     ),
             )
@@ -158,6 +196,7 @@ impl Sandbox for SvnUpgrader {
                             &self.mailto,
                             SvnUpgraderMessage::MailToChange,
                         )
+                        .padding(INPUT_PADDING)
                         .width(Length::from(INPUT_LENGTH)),
                     ),
             )
@@ -185,16 +224,16 @@ impl Sandbox for SvnUpgrader {
                     .padding(10)
                     .align_items(Align::Center)
                     .push(
-                        Text::new("Pack Type:")
+                        Text::new("Pre Name:")
                             .width(Length::from(LABEL_WIDTH))
                             .size(LABEL_FONT_SIZE),
                     )
                     .push(
                         PickList::new(
-                            &mut self.pack_type_pick,
-                            &PackType::ALL[..],
-                            self.pack_type_selected,
-                            SvnUpgraderMessage::PackTypeSelected,
+                            &mut self.pre_name_pick,
+                            &PreName::ALL[..],
+                            self.pre_name_selected,
+                            SvnUpgraderMessage::PreNameSelected,
                         )
                         .width(Length::from(INPUT_LENGTH)),
                     ),

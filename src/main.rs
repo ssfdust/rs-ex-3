@@ -12,7 +12,7 @@ pub fn main() -> iced::Result {
             SvnUpgrader::run(settings)
         },
         None => {
-            settings.window.size = (350, 180);
+            settings.window.size = (350, 210);
             UserInfo::run(settings)
         }
     }
