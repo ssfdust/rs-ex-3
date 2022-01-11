@@ -4,6 +4,7 @@ use iced::{
     button, pick_list, text_input, Align, Button, Column, Container, Element, Length, PickList,
     Row, Sandbox, Text,
 };
+use native_dialog::{FileDialog, MessageDialog, MessageType};
 
 #[derive(Default)]
 pub struct SvnUpgrader {
@@ -19,6 +20,7 @@ pub struct SvnUpgrader {
     pack_type: String,
     pack_type_selected: Option<PackType>,
     pack_type_pick: pick_list::State<PackType>,
+    open_file_dialog: button::State,
     submit: button::State,
 }
 
@@ -29,6 +31,7 @@ pub enum SvnUpgraderMessage {
     MailToChange(String),
     FirstNameSelected(FirstName),
     PackTypeSelected(PackType),
+    OpenFileDialogPressed,
     SubmitPressed,
 }
 
@@ -74,6 +77,19 @@ impl Sandbox for SvnUpgrader {
                 self.pack_type_selected = Some(pack_type);
                 self.pack_type = pack_type_val.to_owned()
             }
+            SvnUpgraderMessage::OpenFileDialogPressed => {
+                let path = FileDialog::new()
+                    .set_location("~/Desktop")
+                    .set_filename("")
+                    .show_open_single_dir()
+                    .unwrap();
+
+                let path = match path {
+                    Some(path) => path,
+                    None => return,
+                };
+                self.repo_path = path.to_string_lossy().to_string();
+            }
             SvnUpgraderMessage::SubmitPressed => {}
         }
     }
@@ -85,6 +101,7 @@ impl Sandbox for SvnUpgrader {
             .push(
                 Row::new()
                     .padding(10)
+                    .spacing(5)
                     .align_items(Align::Center)
                     .push(
                         Text::new("Repo Path:")
@@ -98,7 +115,12 @@ impl Sandbox for SvnUpgrader {
                             &self.repo_path,
                             SvnUpgraderMessage::RepoPathChange,
                         )
-                        .width(Length::from(INPUT_LENGTH)),
+
+                        .width(Length::from(INPUT_LENGTH - 20)),
+                    )
+                    .push(
+                        Button::new(&mut self.open_file_dialog, Text::new(".."))
+                            .on_press(SvnUpgraderMessage::OpenFileDialogPressed),
                     ),
             )
             .push(
