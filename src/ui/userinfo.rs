@@ -1,7 +1,7 @@
 use super::super::core::{create_default_config_file, JenkinsInput};
 use super::{INPUT_LENGTH, INPUT_PADDING, LABEL_FONT_SIZE, LABEL_WIDTH};
 use iced::{
-    button, text_input, Align, Button, Column, Container, Element, Length, Row, Sandbox, Text,
+    button, text_input, Align, Button, Column, Container, Element, Length, Row, Application, Text, self
 };
 use native_dialog::{MessageDialog, MessageType};
 use std::process;
@@ -25,21 +25,23 @@ pub enum UserInfoMessage {
     SubmitPressed,
 }
 
-impl Sandbox for UserInfo {
+impl Application for UserInfo {
     type Message = UserInfoMessage;
+    type Flags = ();
+    type Executor = iced::executor::Default;
 
-    fn new() -> Self {
-        UserInfo {
+    fn new(_flags: ()) -> (UserInfo, iced::Command<UserInfoMessage>) {
+        (UserInfo {
             url: "http://jenkins.juminfo.org/job/tool-make-upgrade".to_string(),
             ..Self::default()
-        }
+        }, iced::Command::none())
     }
 
     fn title(&self) -> String {
         String::from("Upgrade Helper - Set User Info For First Time. Need restart then.")
     }
 
-    fn update(&mut self, message: UserInfoMessage) {
+    fn update(&mut self, message: UserInfoMessage, _clipboard: &mut iced::Clipboard) -> iced::Command<Self::Message> {
         match message {
             UserInfoMessage::UserTokenChange(token) => self.token = token,
             UserInfoMessage::UserNameChange(username) => self.username = username,
@@ -68,10 +70,11 @@ impl Sandbox for UserInfo {
                         .set_text("You need to restart the program.")
                         .show_alert()
                         .unwrap();
-                    process::exit(0)
+                    process::exit(0);
                 }
             }
-        }
+        };
+        iced::Command::none()
     }
 
     fn view(&mut self) -> Element<UserInfoMessage> {

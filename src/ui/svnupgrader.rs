@@ -3,7 +3,7 @@ use super::super::elements::{FirstName, PreName};
 use super::{INPUT_LENGTH, INPUT_PADDING, LABEL_FONT_SIZE, LABEL_WIDTH};
 use iced::{
     button, pick_list, text_input, Align, Button, Column, Container, Element, Length, PickList,
-    Row, Sandbox, Text,
+    Row, Text, self, Application
 };
 use std::io;
 use native_dialog::{FileDialog, MessageDialog, MessageType};
@@ -38,24 +38,26 @@ pub enum SvnUpgraderMessage {
     SubmitPressed,
 }
 
-impl Sandbox for SvnUpgrader {
+impl Application for SvnUpgrader {
     type Message = SvnUpgraderMessage;
+    type Flags = ();
+    type Executor = iced::executor::Default;
 
-    fn new() -> Self {
-        SvnUpgrader {
+    fn new(_flags: ()) -> (SvnUpgrader, iced::Command<SvnUpgraderMessage>) {
+        (SvnUpgrader {
             first_name_selected: Some(FirstName::LAS),
             pre_name_selected: Some(PreName::SP),
             first_name: String::from("001: BDSEC"),
             pre_name: String::from("SP"),
             ..Self::default()
-        }
+        }, iced::Command::none())
     }
 
     fn title(&self) -> String {
         String::from("Upgrade Helper")
     }
 
-    fn update(&mut self, message: SvnUpgraderMessage) {
+    fn update(&mut self, message: SvnUpgraderMessage, _clipboard: &mut iced::Clipboard) -> iced::Command<Self::Message>{
         match message {
             SvnUpgraderMessage::RepoPathChange(repo_path) => {
                 self.repo_path = repo_path;
@@ -92,7 +94,7 @@ impl Sandbox for SvnUpgrader {
 
                 let path = match path {
                     Some(path) => path,
-                    None => return,
+                    None => PathBuf::from("."),
                 };
                 self.repo_path = path.to_string_lossy().to_string();
                 match get_jenkins_toml(&path){
@@ -128,7 +130,8 @@ impl Sandbox for SvnUpgrader {
                     },
                 }
             }
-        }
+        };
+        iced::Command::none()
     }
 
     fn view(&mut self) -> Element<SvnUpgraderMessage> {
