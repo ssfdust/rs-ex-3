@@ -193,3 +193,11 @@ fn create_config_to_file(toml_conf: &PathBuf, ui_input: &JenkinsInput) -> Jenkin
         .unwrap();
     jenkins_info
 }
+
+fn get_readme(path: &PathBuf) -> String {
+    let mut readme = String::new();
+    if path.is_dir() {
+
+    }
+    readme
+}
