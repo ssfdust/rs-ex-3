@@ -1,3 +1,4 @@
+#![windows_subsystem = "windows"]
 mod elements;
 mod core;
 mod ui;
