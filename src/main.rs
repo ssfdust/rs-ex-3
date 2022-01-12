@@ -5,6 +5,7 @@ mod ui;
 use iced::{Application, Settings};
 use ui::{SvnUpgrader, UserInfo};
 
+
 pub fn main() -> iced::Result {
     let mut settings = Settings::default();
     match core::get_jenkins_config() {

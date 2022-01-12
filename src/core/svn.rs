@@ -57,7 +57,7 @@ pub fn get_svn_repo_info(repo_path: &PathBuf) -> RepoInfo {
         .and_then(|con| {
             Ok(get_repo_root(&con).and_then(|root| {
                 get_repo_path(&con)
-                    .and_then(|path| Ok(root + path.as_str()))
+                    .and_then(|path| Ok(root + "/" + path.as_str()))
                     .and_then(|repourl| {
                         get_revision(&con).and_then(|revison| {
                             Ok(RepoInfo {

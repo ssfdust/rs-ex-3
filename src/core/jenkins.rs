@@ -34,11 +34,7 @@ pub struct JenkinsToml {
 
 impl From<&mut SvnUpgrader> for JenkinsToml {
     fn from(svn_upgrader: &mut SvnUpgrader) -> Self {
-        let readme;
-        match fs::read_to_string(&svn_upgrader.repo_path) {
-            Ok(readme_str) => readme = readme_str,
-            _ => readme = String::from("readme"),
-        };
+        let readme = get_readme(&PathBuf::from(&svn_upgrader.repo_path));
         JenkinsToml {
             first_name: svn_upgrader.first_name.clone(),
             pre_name: svn_upgrader.pre_name.clone(),
@@ -195,9 +191,32 @@ fn create_config_to_file(toml_conf: &PathBuf, ui_input: &JenkinsInput) -> Jenkin
 }
 
 fn get_readme(path: &PathBuf) -> String {
-    let mut readme = String::new();
+    let mut readme = String::from("readme");
     if path.is_dir() {
-
+        let items = fs::read_dir(path).and_then(|e| {
+            Ok(e.map(|res| {
+                res.and_then(|entry| {
+                    let entry_path = entry.path();
+                    Ok((entry_path.clone(), entry_path.file_name().map(|filename| {
+                        let lowcase_filename =
+                            filename.to_string_lossy().to_string().to_lowercase();
+                        lowcase_filename.eq("readme")
+                            || lowcase_filename.eq("readme.txt")
+                            || lowcase_filename.eq("readme.md")
+                    })))
+                })
+            }))
+        }).unwrap();
+        for item in items {
+            match item {
+                Ok((path, Some(is_readme))) => {
+                    if is_readme {
+                        readme = fs::read_to_string(path).unwrap();
+                    }
+                }
+                _ => (),
+            }
+        }
     }
     readme
 }
