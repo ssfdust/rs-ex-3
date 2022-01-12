@@ -31,3 +31,9 @@ assets = [
     ["target/release/todos", "usr/bin/iced-todos", "755"],
     ["iced-todos.desktop", "usr/share/applications/", "644"],
 ]
+
+[profile.release]
+lto = true
+panic = 'abort'
+opt-level = 'z'
+codegen-units = 1
